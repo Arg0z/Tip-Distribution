@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!-- Tip split by busy hours
+  A small web page (index.html + styles.css + the js/ folder) that splits tips between staff based on HOW BUSY
+  the hours they worked were, not just how many hours they worked.
+  Method: total sales per hour -> 3-hour moving average ("busy level") ->
+  each person earns points = sum of the busy level for every hour they worked ->
+  tips are split in proportion to points. Nothing is sent to a server; data is
+  kept in the browser (localStorage). Only outside resources: Google Fonts and
+  the SheetJS library (for the Excel export). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tip split by busy hours</title>
+<!-- Fonts: Bricolage Grotesque for headings, IBM Plex Sans for text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<!-- All styling lives in styles.css -->
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main>
+<h1>Tip split by busy hours</h1>
+<p class="lead">Hours worked during the rush count for more. Fill in each day of the week with who worked and when, and every person's weekly total is added up at the bottom.</p>
+
+<!-- SECTION 1 - Tip settings: per-day pools or one weekly pool, plus the "share each hour" option -->
+<section>
+  <h2>Tips</h2>
+  <div class="seg" role="group" aria-label="Tip pool type">
+    <button id="modeDay">Pool per day</button><button id="modeWeek">One pool for the week</button>
+  </div>
+  <p class="hint" id="modeHint" style="margin-top:10px"></p>
+  <h3>Measure busy hours by</h3>
+  <div class="seg" role="group" aria-label="Measure busy hours by">
+    <button id="measureTips">Tips per hour</button><button id="measureSales">Sales per hour</button>
+  </div>
+  <p class="hint" id="measureHint" style="margin-top:10px"></p>
+  <div class="pool" id="weekPoolWrap"><label for="weekPool" style="color:var(--muted)" id="weekPoolLbl">Week tip pool</label><input id="weekPool" type="number" inputmode="decimal" min="0" step="0.01"></div>
+  <label class="toggle"><input type="checkbox" id="split">
+    <span>Share each hour among the people working it<small>Off: everyone gets the full value of a busy hour. On: an hour's value is divided by how many people were on shift.</small></span></label>
+</section>
+
+<!-- SECTION 2 - One day at a time: pick a day tab, then enter tips, staff shifts and hourly sales -->
+<section>
+  <h2>Day by day</h2>
+  <div class="days" id="days" role="group" aria-label="Day of week"></div>
+
+  <div class="pool" id="dayPoolWrap"><label for="dayPool" style="color:var(--muted)" id="dayPoolLbl">Tips</label><input id="dayPool" type="number" inputmode="decimal" min="0" step="0.01"></div>
+
+  <h3>Who worked</h3>
+  <p class="hint">Write names the same way each day so the week total adds them up. Names you've used before are suggested as you type.</p>
+  <div class="shift" style="font-size:12px;color:var(--muted);margin-bottom:4px"><span>Name</span><span>Start</span><span>End</span><span></span></div>
+  <div id="shifts"></div>
+  <datalist id="names"></datalist>
+  <div class="row"><button id="addBtn">Add person</button><button id="copyBtn">Copy people from previous day</button></div>
+  <p class="err" id="shiftErr" hidden></p>
+
+  <h3 id="hoursTitle">Tips per hour</h3>
+  <p class="hint" id="hoursHint"></p>
+  <div class="hours" id="hours"></div>
+  <div style="margin-top:10px">
+    <textarea id="paste" placeholder="Paste hourly totals, e.g. 120, 240, 410…"></textarea>
+    <div class="row" style="margin-top:8px"><button id="pasteBtn">Fill hours from pasted numbers</button></div>
+    <p class="err" id="pasteErr" hidden></p>
+  </div>
+
+  <h3>How busy the day was</h3>
+  <div class="chart" id="chart"></div>
+
+  <h3 id="dayResTitle">Split for this day</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Name</th><th>Hours</th><th>Points</th><th>Share</th><th>Tips</th></tr></thead>
+    <tbody id="dayRes"></tbody>
+  </table></div>
+</section>
+
+<!-- SECTION 3 - Events: tips counted separately, split equally between the people on each event -->
+<section>
+  <h2>Events</h2>
+  <p class="hint">Tips from events are counted separately from the days and split equally between the people you add to each event. They appear in their own column in the week total.</p>
+  <div id="events"></div>
+  <div class="row" style="margin-top:12px"><button id="addEvBtn">Add event</button></div>
+</section>
+
+<!-- SECTION 4 - Weekly summary per person + Excel export -->
+<section>
+  <h2>Week total</h2>
+  <p class="hint">Each person's tips for every day, plus events, added up.</p>
+  <div class="tablewrap"><table>
+    <thead id="weekHead"></thead><tbody id="weekRes"></tbody><tfoot id="weekFoot"></tfoot>
+  </table></div>
+  <div class="row" style="margin-top:14px"><button id="xlsxBtn" hidden>Export to Excel</button><button id="clearBtn">Clear the week</button></div>
+  <p class="err" id="xlsxMsg" hidden></p>
+</section>
+</main>
+
+<!-- SheetJS: builds the .xlsx file for the Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- All logic lives in the js/ folder, one file per job. ORDER MATTERS: each file can use
+     things made by the files above it, and 10-start.js must be last because it draws the page. -->
+<script src="js/1-settings.js"></script>     <!-- fixed settings, helpers, blank week -->
+<script src="js/2-state.js"></script>        <!-- saved data (st) -->
+<script src="js/3-calculations.js"></script> <!-- the maths: points and money -->
+<script src="js/4-screen.js"></script>       <!-- builds day tabs, sales boxes, staff rows -->
+<script src="js/5-events.js"></script>       <!-- the Events section -->
+<script src="js/6-update.js"></script>       <!-- redraws results after every change -->
+<script src="js/7-chart.js"></script>        <!-- the busy-hours chart -->
+<script src="js/8-controls.js"></script>     <!-- button and input handlers -->
+<script src="js/9-export.js"></script>       <!-- Excel export -->
+<script src="js/10-start.js"></script>       <!-- start-up -->
+<!-- (classic scripts, not ES modules, so the page still works opened straight from disk) -->
+</body>
+</html>
