@@ -37,6 +37,7 @@ input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 textarea{min-height:60px;resize:vertical}
 button{font:inherit;font-weight:500;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;min-height:40px;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .shift{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) 40px;gap:8px;align-items:center;margin-bottom:8px}
 .x{padding:0;width:40px;color:var(--muted)}
@@ -59,7 +60,11 @@ th,td{text-align:right;padding:9px 6px;border-bottom:1px solid var(--line);white
 th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
 th{font-size:13px;color:var(--muted);font-weight:500}
 td.amt{font-weight:500;font-size:17px}
+.openhrs{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.openhrs strong{font-weight:500;font-size:17px;min-width:9ch;text-align:center}
 tfoot td{border-bottom:0;color:var(--muted);font-size:14px}
+tfoot tr:first-child td{border-top:2px solid var(--line)}
+tfoot .ok{color:#2E8B57;font-weight:500}tfoot .bad{color:var(--danger);font-weight:500}
 .tablewrap{overflow-x:auto}
 .err{color:var(--danger);font-size:14px;margin:8px 0 0}
 .pool{display:flex;gap:10px;align-items:center;margin:12px 0}

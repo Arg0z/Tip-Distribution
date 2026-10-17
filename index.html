@@ -48,6 +48,14 @@
 
   <div class="pool" id="dayPoolWrap"><label for="dayPool" style="color:var(--muted)" id="dayPoolLbl">Tips</label><input id="dayPool" type="number" inputmode="decimal" min="0" step="0.01"></div>
 
+  <h3>Opening hours</h3>
+  <p class="hint">Each day can have its own hours. Add or remove hours at the start or end of the day.</p>
+  <div class="openhrs">
+    <div class="row"><button id="earlierBtn">+ Earlier</button><button id="dropFirstBtn">− First hour</button></div>
+    <strong id="openLbl"></strong>
+    <div class="row"><button id="dropLastBtn">− Last hour</button><button id="laterBtn">+ Later</button></div>
+  </div>
+
   <h3>Who worked</h3>
   <p class="hint">Write names the same way each day so the week total adds them up. Names you've used before are suggested as you type.</p>
   <div class="shift" style="font-size:12px;color:var(--muted);margin-bottom:4px"><span>Name</span><span>Start</span><span>End</span><span></span></div>
@@ -90,6 +98,7 @@
   <div class="tablewrap"><table>
     <thead id="weekHead"></thead><tbody id="weekRes"></tbody><tfoot id="weekFoot"></tfoot>
   </table></div>
+  <p class="err" id="weekCheck" hidden></p>
   <div class="row" style="margin-top:14px"><button id="xlsxBtn" hidden>Export to Excel</button><button id="clearBtn">Clear the week</button></div>
   <p class="err" id="xlsxMsg" hidden></p>
 </section>

@@ -46,6 +46,25 @@ function update(){
   people.sort((a,b)=>b.total-a.total);
   $('weekRes').innerHTML=people.map(P=>{grand+=P.total;hrsAll+=P.hrs;
     return `<tr><td>${esc(P.name)}</td>${P.days.map((c,i)=>`<td>${P.worked[i]?money(Math.round(c)):'–'}</td>`).join('')}${hasEv?`<td>${P.ev?money(P.ev):'–'}</td>`:''}<td>${P.hrs}</td><td class="amt">${money(P.total)}</td></tr>`}).join('')||`<tr><td colspan="${hasEv?11:10}" style="color:var(--muted)">Add people to a day or event to see the week total.</td></tr>`;
-  $('weekFoot').innerHTML=people.length?`<tr><td>Total</td>${DAYS.map((x,i)=>`<td>${money(Math.round(people.reduce((a,P)=>a+P.days[i],0)))}</td>`).join('')}${hasEv?`<td>${money(people.reduce((a,P)=>a+P.ev,0))}</td>`:''}<td>${hrsAll}</td><td>${money(grand)}</td></tr>`:'';
+  // Check rows: what was paid out vs the tips that were entered, per day, events and in total.
+  // In "one pool for the week" with sales, tips are only entered as one weekly amount, so day columns show "–".
+  const paidDay=DAYS.map((x,i)=>people.reduce((a,P)=>a+P.days[i],0)),paidEv=people.reduce((a,P)=>a+P.ev,0);
+  const entDay=DAYS.map((x,i)=>isWeek&&w==='sales'?null:Math.round(dayTips(st.days[i])*100));
+  const entEv=st.events.reduce((a,ev)=>a+Math.round(Math.max(0,parseFloat(ev.pool)||0)*100),0);
+  const entAll=(isWeek?Math.round(weekTips()*100):entDay.reduce((a,c)=>a+c,0))+entEv;
+  const diff=(p,e)=>e===null?'–':p===e?'<span class="ok">✓</span>':`<span class="bad">${p>e?'+':'−'}${money(Math.abs(p-e))}</span>`;
+  $('weekFoot').innerHTML=(people.length||entAll)?`<tr><td>Paid out</td>${paidDay.map(c=>`<td>${money(c)}</td>`).join('')}${hasEv?`<td>${money(paidEv)}</td>`:''}<td>${hrsAll}</td><td>${money(grand)}</td></tr>
+    <tr class="check"><td>Tips entered</td>${entDay.map(c=>`<td>${c===null?'–':money(c)}</td>`).join('')}${hasEv?`<td>${money(entEv)}</td>`:''}<td></td><td>${money(entAll)}</td></tr>
+    <tr class="check"><td>Difference</td>${DAYS.map((x,i)=>`<td>${isWeek?'–':diff(paidDay[i],entDay[i])}</td>`).join('')}${hasEv?`<td>${diff(paidEv,entEv)}</td>`:''}<td></td><td>${diff(grand,entAll)}</td></tr>`:'';
+  // Explain a mismatch so it can be fixed
+  const why=[];
+  if(grand!==entAll){
+    if(st.days.some(d=>d.staff.some(p=>!key(p.name||'')&&okShift(p))))why.push('someone has a shift but no name');
+    if(!isWeek&&DAYS.some((x,i)=>dayTips(st.days[i])>0&&!pts[i].some(r=>r.pts>0)))why.push(`a day has tips but no shift during an hour with ${w} entered`);
+    if(isWeek&&weekTips()>0&&!people.some(P=>P.pts>0))why.push('no named shifts with hourly numbers yet');
+    if(st.events.some(ev=>(parseFloat(ev.pool)||0)>0&&!eventSplit(ev).length))why.push('an event has tips but nobody on it');
+  }
+  $('weekCheck').hidden=grand===entAll;
+  $('weekCheck').textContent=grand===entAll?'':`Paid out is ${money(Math.abs(grand-entAll))} ${grand>entAll?'more':'less'} than entered`+(why.length?': '+why.join('; ')+'.':'.');
   drawChart(d);
 }

@@ -1,24 +1,26 @@
 // ==========================================================
 // 3-calculations.js - the maths: busy level, points, and splitting money
 // No screen code here, only numbers in -> numbers out.
-// Uses: START, N, key (1), st, okShift, hourly, dayTips, weekTips (2)
+// Uses: key (1), st, okShift, openVals, dayTips, weekTips (2)
 // Provides: ma(), dayPoints(), splitCents(), money(), compute(), eventSplit()
 // ==========================================================
 
 // ma: centered 3-hour moving average. Each hour = average of itself, the hour before
 // and the hour after (only 2 values at the first/last hour). This smooths out random
 // spikes such as one big table, so it reflects how busy that part of the day was.
-const ma=s=>s.map((v,i)=>{const a=s.slice(Math.max(0,i-1),Math.min(N,i+2));return a.reduce((x,y)=>x+y,0)/a.length});
+const ma=s=>s.map((v,i)=>{const a=s.slice(Math.max(0,i-1),i+2);return a.reduce((x,y)=>x+y,0)/a.length});
 // dayPoints: points and hours for every person on one day.
 // Points = sum of the moving-average value for each hour worked.
 // The hourly values are sales or tips per hour, depending on the measure setting.
 // If "share each hour" is on, each hour's value is first divided by the
 // number of people working that hour (count[]).
+// Only the day's opening hours are used: the moving average starts at the first open hour,
+// and any part of a shift outside opening hours earns no points.
 function dayPoints(d){
-  const m=ma(hourly(d)),count=Array(N).fill(0);
-  d.staff.forEach(p=>{if(okShift(p))for(let h=p.s;h<p.e;h++)count[h-START]++});
+  const m=ma(openVals(d)),count=m.map(()=>0),inside=h=>h>=d.open&&h<d.close;
+  d.staff.forEach(p=>{if(okShift(p))for(let h=p.s;h<p.e;h++)if(inside(h))count[h-d.open]++});
   return d.staff.map(p=>{let pts=0,hrs=0;
-    if(okShift(p)){hrs=p.e-p.s;for(let h=p.s;h<p.e;h++){const i=h-START;pts+=st.split?m[i]/count[i]:m[i]}}
+    if(okShift(p)){hrs=p.e-p.s;for(let h=p.s;h<p.e;h++)if(inside(h)){const i=h-d.open;pts+=st.split?m[i]/count[i]:m[i]}}
     return{pts,hrs}});
 }
 // splitCents: split an amount in proportion to weights, in whole cents.

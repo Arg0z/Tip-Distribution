@@ -1,7 +1,7 @@
 // ==========================================================
 // 4-screen.js - builds the inputs: day tabs, hourly sales boxes, staff rows
 // Uses: 1, 2, and update() from 6-update.js
-// Provides: buildDays(), buildDay(), opts(), buildNames(), buildShifts()
+// Provides: buildDays(), clampShifts(), buildDay(), opts(), buildNames(), buildShifts()
 // ==========================================================
 
 // buildDays: the Mon..Sun tabs. Clicking one switches the selected day.
@@ -10,14 +10,21 @@ function buildDays(){
   $('days').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{st.cur=+b.dataset.d;
     $('days').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));buildDay();update()}));
 }
-// buildDay: fill the day section (tips, hourly sales/tips inputs, staff) for the selected day
+// clampShifts: keep every shift on a day inside that day's opening hours
+// (used after opening hours change or people are copied from another day)
+function clampShifts(d){d.staff.forEach(p=>{p.s=Math.min(Math.max(p.s,d.open),d.close-1);p.e=Math.min(Math.max(p.e,d.open+1),d.close)})}
+// buildDay: fill the day section (tips, opening hours, hourly sales/tips inputs, staff) for the selected day
 function buildDay(){
-  const d=day(),w=measure();
+  const d=day(),w=measure(),n=d.close-d.open;
+  clampShifts(d);
+  $('openLbl').textContent=`${lbl(d.open)} – ${lbl(d.close)}`;
+  $('earlierBtn').disabled=d.open<=START;$('laterBtn').disabled=d.close>=START+N;
+  $('dropFirstBtn').disabled=$('dropLastBtn').disabled=n<=1;
   $('dayPoolLbl').textContent=DAYS[st.cur]+' tips';$('dayPool').value=d.pool;
   $('dayResTitle').textContent='Split for '+DAYS[st.cur];
   $('hoursTitle').textContent=w==='tips'?'Tips per hour':'Sales per hour';
-  $('hoursHint').textContent=`Total ${w} for the whole place in each hour, 10:00 to 01:00. You can also paste ${N} numbers from your POS.`;
-  $('hours').innerHTML=hourly(d).map((v,i)=>`<label>${lbl(START+i)}–${lbl(START+i+1)}<input type="number" inputmode="decimal" min="0" data-i="${i}" value="${v}"></label>`).join('');
+  $('hoursHint').textContent=`Total ${w} for the whole place in each hour, ${lbl(d.open)} to ${lbl(d.close)}. You can also paste ${n} numbers from your POS.`;
+  $('hours').innerHTML=openVals(d).map((v,k)=>{const h=d.open+k;return `<label>${lbl(h)}–${lbl(h+1)}<input type="number" inputmode="decimal" min="0" data-i="${h-START}" value="${v}"></label>`}).join('');
   $('hours').querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{hourly(day())[+inp.dataset.i]=Math.max(0,parseFloat(inp.value)||0);update()}));
   $('paste').value='';$('pasteErr').hidden=true;
   $('copyBtn').disabled=st.cur===0;
@@ -36,8 +43,8 @@ function buildShifts(){
   const d=day();
   $('shifts').innerHTML=d.staff.map((p,i)=>`<div class="shift">
     <input aria-label="Name" list="names" data-i="${i}" data-k="name" value="${esc(p.name)}" placeholder="Name" autocomplete="off">
-    <select aria-label="Start" data-i="${i}" data-k="s">${opts(START,START+N-1,p.s)}</select>
-    <select aria-label="End" data-i="${i}" data-k="e">${opts(START+1,START+N,p.e)}</select>
+    <select aria-label="Start" data-i="${i}" data-k="s">${opts(d.open,d.close-1,p.s)}</select>
+    <select aria-label="End" data-i="${i}" data-k="e">${opts(d.open+1,d.close,p.e)}</select>
     <button class="x" aria-label="Remove ${esc(p.name||'person')}" data-rm="${i}">✕</button></div>`).join('')||'<p class="hint">Nobody added for this day yet.</p>';
   $('shifts').querySelectorAll('[data-k]').forEach(el=>el.addEventListener(el.tagName==='INPUT'?'input':'change',()=>{
     const p=day().staff[+el.dataset.i];p[el.dataset.k]=el.dataset.k==='name'?el.value:+el.value;update()}));
