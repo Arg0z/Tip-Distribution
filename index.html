@@ -1,22 +1,39 @@
 <!DOCTYPE html>
 <!-- Tip split by busy hours
-  A small web page (index.html + styles.css + the js/ folder) that splits tips between staff based on HOW BUSY
-  the hours they worked were, not just how many hours they worked.
-  Method: total sales per hour -> 3-hour moving average ("busy level") ->
-  each person earns points = sum of the busy level for every hour they worked ->
-  tips are split in proportion to points. Nothing is sent to a server; data is
-  kept in the browser (localStorage). Only outside resources: Google Fonts and
-  the SheetJS library (for the Excel export). -->
+  A small web page that splits tips between staff based on HOW BUSY the hours they
+  worked were, not just how many hours they worked.
+
+  Files:
+    index.html  - this file: the layout of the page (sections, boxes, buttons, tables)
+    styles.css  - how it looks (colours, spacing, light/dark mode)
+    js/         - what it does, one file per job (see the list at the bottom of this file)
+
+  Method:
+    1. For each open hour, the total tips (or sales) of the whole place are entered.
+    2. These are smoothed with a 3-hour moving average: the "busy level" of each hour.
+    3. Each person earns points = the busy level of every hour they worked, added up.
+    4. The tips are split in proportion to points, in whole cents, so the amounts
+       always add up exactly to the tips entered.
+    Events (parties etc.) are separate: their tips are split equally.
+    Full details with examples are in js/3-calculations.js.
+
+  Privacy: nothing is sent to a server. Everything typed is kept in this browser
+  (localStorage) on this device. The only things loaded from the internet are the
+  fonts (Google Fonts) and the SheetJS library used for the Excel export.
+
+  Most boxes and tables below start empty: the JavaScript fills them in. Elements
+  the JavaScript needs to find have an id="..." (e.g. id="weekPool"). -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tip split by busy hours</title>
-<!-- Fonts: Bricolage Grotesque for headings, IBM Plex Sans for text -->
+<!-- Fonts from Google Fonts: Bricolage Grotesque for headings, IBM Plex Sans for text.
+     If they can't load (offline), the browser's own fonts are used instead. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
-<!-- All styling lives in styles.css -->
+<!-- All styling (colours, layout, dark mode) lives in styles.css -->
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -24,7 +41,13 @@
 <h1>Tip split by busy hours</h1>
 <p class="lead">Hours worked during the rush count for more. Fill in each day of the week with who worked and when, and every person's weekly total is added up at the bottom.</p>
 
-<!-- SECTION 1 - Tip settings: per-day pools or one weekly pool, plus the "share each hour" option -->
+<!-- SECTION 1 - Tips: settings that apply to the whole week
+     - Pool type: "Pool per day" (each day's tips go to that day's staff) or
+       "One pool for the week" (all tips split by everyone's points for the week)
+     - Measure busy hours by tips per hour or sales per hour
+     - Week tip box: only shown for "One pool for the week"
+     - "Share each hour" checkbox
+     The grey hint lines (id="modeHint", "measureHint") are filled in to explain the current choice. -->
 <section>
   <h2>Tips</h2>
   <div class="seg" role="group" aria-label="Tip pool type">
@@ -41,7 +64,15 @@
     <span>Share each hour among the people working it<small>Off: everyone gets the full value of a busy hour. On: an hour's value is divided by how many people were on shift.</small></span></label>
 </section>
 
-<!-- SECTION 2 - One day at a time: pick a day tab, then enter tips, staff shifts and hourly sales -->
+<!-- SECTION 2 - Day by day: one day at a time
+     - Day tabs Mon..Sun (built by buildDays in js/4-screen.js), with a small tip total under each
+     - That day's tip box (only shown for "Pool per day")
+     - Opening hours: add/remove an hour at the start or end of the day
+     - Who worked: one row per person with name, start and end (built by buildShifts);
+       <datalist id="names"> holds the name suggestions; id="shiftErr" shows warnings
+     - Tips/sales per hour: one box per open hour, plus a box to paste them all at once
+     - The busy-hours chart (js/7-chart.js)
+     - "Split for <day>": each person's hours, points, share and tips for this day -->
 <section>
   <h2>Day by day</h2>
   <div class="days" id="days" role="group" aria-label="Day of week"></div>
@@ -83,7 +114,9 @@
   </table></div>
 </section>
 
-<!-- SECTION 3 - Events: tips counted separately, split equally between the people on each event -->
+<!-- SECTION 3 - Events: parties, catering and so on. Each event's tips are counted
+     separately from the days and split equally between the people on it.
+     The event cards are built by js/5-events.js inside <div id="events">. -->
 <section>
   <h2>Events</h2>
   <p class="hint">Tips from events are counted separately from the days and split equally between the people you add to each event. They appear in their own column in the week total.</p>
@@ -91,7 +124,11 @@
   <div class="row" style="margin-top:12px"><button id="addEvBtn">Add event</button></div>
 </section>
 
-<!-- SECTION 4 - Weekly summary per person + Excel export -->
+<!-- SECTION 4 - Week total: one row per person (tips per day, events, hours, total),
+     filled in by update() in js/6-update.js.
+     The bottom rows (<tfoot>) compare "Paid out" with "Tips entered" and show the
+     Difference; id="weekCheck" explains any gap in red.
+     Buttons: Export to Excel (hidden if SheetJS couldn't load) and Clear the week. -->
 <section>
   <h2>Week total</h2>
   <p class="hint">Each person's tips for every day, plus events, added up.</p>
@@ -104,20 +141,22 @@
 </section>
 </main>
 
-<!-- SheetJS: builds the .xlsx file for the Excel export -->
+<!-- SheetJS: a library that builds the .xlsx file for the Excel export (pinned to version 0.18.5) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- All logic lives in the js/ folder, one file per job. ORDER MATTERS: each file can use
-     things made by the files above it, and 10-start.js must be last because it draws the page. -->
-<script src="js/1-settings.js"></script>     <!-- fixed settings, helpers, blank week -->
-<script src="js/2-state.js"></script>        <!-- saved data (st) -->
-<script src="js/3-calculations.js"></script> <!-- the maths: points and money -->
-<script src="js/4-screen.js"></script>       <!-- builds day tabs, sales boxes, staff rows -->
-<script src="js/5-events.js"></script>       <!-- the Events section -->
-<script src="js/6-update.js"></script>       <!-- redraws results after every change -->
-<script src="js/7-chart.js"></script>        <!-- the busy-hours chart -->
-<script src="js/8-controls.js"></script>     <!-- button and input handlers -->
+     things made by the files above it, and 10-start.js must be last because it draws the page.
+     Each file starts with a comment saying what it uses from the others and what it provides. -->
+<script src="js/1-settings.js"></script>     <!-- fixed settings (hour grid, default hours), small helpers, blank week -->
+<script src="js/2-state.js"></script>        <!-- saved data (st), loading/saving, repairs for old saves -->
+<script src="js/3-calculations.js"></script> <!-- the maths: busy level, points, splitting money in cents -->
+<script src="js/4-screen.js"></script>       <!-- builds day tabs, opening hours, hourly boxes, staff rows -->
+<script src="js/5-events.js"></script>       <!-- the Events section: cards and equal splits -->
+<script src="js/6-update.js"></script>       <!-- saves, recalculates and redraws results after every change -->
+<script src="js/7-chart.js"></script>        <!-- the busy-hours chart (SVG) -->
+<script src="js/8-controls.js"></script>     <!-- what the fixed buttons and boxes do -->
 <script src="js/9-export.js"></script>       <!-- Excel export -->
-<script src="js/10-start.js"></script>       <!-- start-up -->
-<!-- (classic scripts, not ES modules, so the page still works opened straight from disk) -->
+<script src="js/10-start.js"></script>       <!-- start-up: draws the page the first time -->
+<!-- These are classic scripts, not ES modules, on purpose: browsers block modules on pages
+     opened straight from disk (double-clicking index.html), but classic scripts work. -->
 </body>
 </html>
