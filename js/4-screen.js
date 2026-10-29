@@ -1,6 +1,6 @@
 // ==========================================================
 // 4-screen.js - builds the inputs in the "Day by day" section:
-// day tabs, opening hours, hourly sales/tips boxes and the staff rows.
+// day tabs, opening hours, hourly boxes (SPG, sales or tips) and the staff rows.
 //
 // These functions REBUILD parts of the page from st (they write fresh HTML and
 // attach what happens when you type or click). They are only called when the layout
@@ -41,8 +41,11 @@ function buildDay(){
   // Tip box and titles for this day
   $('dayPoolLbl').textContent=DAYS[st.cur]+' tips';$('dayPool').value=d.pool;
   $('dayResTitle').textContent='Split for '+DAYS[st.cur];
-  $('hoursTitle').textContent=w==='tips'?'Tips per hour':'Sales per hour';
-  $('hoursHint').textContent=`Total ${w} for the whole place in each hour, ${lbl(d.open)} to ${lbl(d.close)}. You can also paste ${n} numbers from your POS.`;
+  $('xlsxDayBtn').textContent='Export '+DAYS[st.cur]+' to Excel';
+  $('hoursTitle').textContent={spg:'Sales per game (SPG) per hour',sales:'Sales per hour',tips:'Tips per hour'}[w];
+  $('hoursHint').textContent=w==='spg'
+    ?`Sales per game for each hour, ${lbl(d.open)} to ${lbl(d.close)}, as shown in your POS. You can also paste ${n} numbers at once.`
+    :`Total ${w} for the whole place in each hour, ${lbl(d.open)} to ${lbl(d.close)}. You can also paste ${n} numbers from your POS.`;
   // One number box per open hour, labelled e.g. "10:00–11:00".
   // data-i = the slot in the 24-slot grid, so typing knows where to save the number.
   $('hours').innerHTML=openVals(d).map((v,k)=>{const h=d.open+k;return `<label>${lbl(h)}–${lbl(h+1)}<input type="number" inputmode="decimal" min="0" data-i="${h-START}" value="${v}"></label>`}).join('');

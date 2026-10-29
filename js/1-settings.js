@@ -47,14 +47,14 @@ const key=n=>n.trim().toLowerCase().replace(/\s+/g,' ');
 // empty: build a fresh, empty week (used on a first visit and by "Clear the week").
 // It deliberately KEEPS the things that are settings rather than data for one week:
 //   - tip pool type (per day / one pool for the week)
-//   - what busy hours are measured by (tips / sales)
+//   - what busy hours are measured by (SPG / sales / tips)
 //   - "share each hour" on/off
 //   - each day's opening hours (they're the regular schedule, not this week's data)
 // Everything else starts at zero: tip amounts, hourly numbers, people and events.
 // On a first visit there is no saved data yet (st is empty), so the defaults are used:
-// pool per day, tips per hour, share each hour off, open 10:00-01:00 every day.
+// pool per day, sales per game (SPG), share each hour off, open 10:00-01:00 every day.
 // The fields of the returned object are explained at the top of 2-state.js.
-function empty(){return{mode:st&&st.mode==='week'?'week':'day',measure:st&&st.measure==='sales'?'sales':'tips',weekPool:0,split:!!(st&&st.split),cur:0,
+function empty(){return{mode:st&&st.mode==='week'?'week':'day',measure:st&&['sales','tips'].includes(st.measure)?st.measure:'spg',weekPool:0,split:!!(st&&st.split),cur:0,
   // one entry per day; o = that same day in the current week (if there is one), to copy its hours
   days:DAYS.map((x,i)=>{const o=st&&st.days&&st.days[i];
-    return{pool:0,open:o?o.open:OPEN,close:o?o.close:CLOSE,sales:Array(N).fill(0),tips:Array(N).fill(0),staff:[]}}),events:[]}}
+    return{pool:0,open:o?o.open:OPEN,close:o?o.close:CLOSE,spg:Array(N).fill(0),sales:Array(N).fill(0),tips:Array(N).fill(0),staff:[]}}),events:[]}}

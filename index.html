@@ -9,8 +9,10 @@
     js/         - what it does, one file per job (see the list at the bottom of this file)
 
   Method:
-    1. For each open hour, the total tips (or sales) of the whole place are entered.
-    2. These are smoothed with a 3-hour moving average: the "busy level" of each hour.
+    1. For each open hour, the sales per game (SPG, the main option, taken from the POS),
+       or the total sales or tips of the whole place, are entered.
+    2. Each hour's value is smoothed with a 3-hour moving average:
+       the "busy level" of each hour.
     3. Each person earns points = the busy level of every hour they worked, added up.
     4. The tips are split in proportion to points, in whole cents, so the amounts
        always add up exactly to the tips entered.
@@ -44,7 +46,7 @@
 <!-- SECTION 1 - Tips: settings that apply to the whole week
      - Pool type: "Pool per day" (each day's tips go to that day's staff) or
        "One pool for the week" (all tips split by everyone's points for the week)
-     - Measure busy hours by tips per hour or sales per hour
+     - Measure busy hours by sales per game (SPG, the main option), sales per hour or tips per hour
      - Week tip box: only shown for "One pool for the week"
      - "Share each hour" checkbox
      The grey hint lines (id="modeHint", "measureHint") are filled in to explain the current choice. -->
@@ -56,7 +58,7 @@
   <p class="hint" id="modeHint" style="margin-top:10px"></p>
   <h3>Measure busy hours by</h3>
   <div class="seg" role="group" aria-label="Measure busy hours by">
-    <button id="measureTips">Tips per hour</button><button id="measureSales">Sales per hour</button>
+    <button id="measureSpg">Sales per game</button><button id="measureSales">Sales per hour</button><button id="measureTips">Tips per hour</button>
   </div>
   <p class="hint" id="measureHint" style="margin-top:10px"></p>
   <div class="pool" id="weekPoolWrap"><label for="weekPool" style="color:var(--muted)" id="weekPoolLbl">Week tip pool</label><input id="weekPool" type="number" inputmode="decimal" min="0" step="0.01"></div>
@@ -70,9 +72,11 @@
      - Opening hours: add/remove an hour at the start or end of the day
      - Who worked: one row per person with name, start and end (built by buildShifts);
        <datalist id="names"> holds the name suggestions; id="shiftErr" shows warnings
-     - Tips/sales per hour: one box per open hour, plus a box to paste them all at once
+     - Hourly numbers (SPG, sales or tips): one box per open hour, plus a box to paste a
+       whole column at once
      - The busy-hours chart (js/7-chart.js)
-     - "Split for <day>": each person's hours, points, share and tips for this day -->
+     - "Split for <day>": each person's hours, points, share and tips for this day,
+       with a button to export this day (split + hour-by-hour numbers) to Excel -->
 <section>
   <h2>Day by day</h2>
   <div class="days" id="days" role="group" aria-label="Day of week"></div>
@@ -112,6 +116,8 @@
     <thead><tr><th>Name</th><th>Hours</th><th>Points</th><th>Share</th><th>Tips</th></tr></thead>
     <tbody id="dayRes"></tbody>
   </table></div>
+  <div class="row" style="margin-top:14px"><button id="xlsxDayBtn" hidden>Export this day to Excel</button></div>
+  <p class="err" id="xlsxDayMsg" hidden></p>
 </section>
 
 <!-- SECTION 3 - Events: parties, catering and so on. Each event's tips are counted
@@ -128,7 +134,8 @@
      filled in by update() in js/6-update.js.
      The bottom rows (<tfoot>) compare "Paid out" with "Tips entered" and show the
      Difference; id="weekCheck" explains any gap in red.
-     Buttons: Export to Excel (hidden if SheetJS couldn't load) and Clear the week. -->
+     Buttons: Export to Excel (the whole week table with its check rows, plus a sheet per
+     day and one for events; hidden if SheetJS couldn't load) and Clear the week. -->
 <section>
   <h2>Week total</h2>
   <p class="hint">Each person's tips for every day, plus events, added up.</p>

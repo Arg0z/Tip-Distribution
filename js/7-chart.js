@@ -9,7 +9,7 @@
 // ==========================================================
 
 // drawChart: the chart for one day, covering only its opening hours.
-//   Grey bars        = the hourly tips (or sales) as entered
+//   Grey bars        = the hourly values: sales per game, sales or tips
 //   Blue line        = the busy level (3-hour moving average) that points are based on
 //   Shaded bars below = one row per person, showing when their shift was
 // Seeing the shift bars under the blue line makes it easy to check who worked the rush.
@@ -24,7 +24,7 @@ function drawChart(d){
   // max = the highest value, which reaches the top of the chart (at least 1, so an empty
   // day doesn't divide by zero); cw = width of one hour; y(v) = how far down value v is drawn
   const max=Math.max(1,...v0,...m),cw=(W-padL-padR)/n,y=v=>top+ch-v/max*ch;
-  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hourly ${measure()} for ${DAYS[st.cur]} with moving average line and shifts">`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hourly ${measure()==='spg'?'sales per game':measure()} for ${DAYS[st.cur]} with moving average line and shifts">`;
   // 4 horizontal guide lines (0, 1/3, 2/3 and the max) with their value on the left
   for(let k=0;k<=3;k++){const v=max*k/3,yy=y(v);s+=`<line x1="${padL}" x2="${W-padR}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${padL-6}" y="${yy+4}" font-size="11" text-anchor="end" fill="var(--muted)">${Math.round(v)}</text>`}
   // One grey bar per hour (64% of the hour's width, centred)

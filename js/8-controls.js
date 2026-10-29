@@ -27,11 +27,11 @@ $('copyBtn').addEventListener('click',()=>{if(!st.cur)return;
 // ---- Opening hours ----
 // Four buttons add or remove one hour at the start or end of the selected day.
 // Limits: hours stay within the 06:00-06:00 grid, and a day keeps at least 1 hour.
-// When an hour is removed, its sales and tips are set back to 0, so a number you can't
+// When an hour is removed, its SPG, sales and tips are set back to 0, so a number you can't
 // see any more can never be counted by mistake (and adding the hour back starts at 0).
 // buildDay() then fits any shifts that ran into the removed hour inside the new hours.
-// clearHour(d, h): set hour h's sales and tips to 0 on day d
-const clearHour=(d,h)=>{d.sales[h-START]=0;d.tips[h-START]=0};
+// clearHour(d, h): set hour h's SPG, sales and tips to 0 on day d
+const clearHour=(d,h)=>{d.spg[h-START]=0;d.sales[h-START]=0;d.tips[h-START]=0};
 // "+ Earlier": open one hour earlier
 $('earlierBtn').addEventListener('click',()=>{const d=day();if(d.open>START){d.open--;buildDay();update()}});
 // "+ Later": close one hour later
@@ -45,11 +45,13 @@ $('dropLastBtn').addEventListener('click',()=>{const d=day();if(d.close-d.open>1
 // "Pool per day" / "One pool for the week"
 $('modeDay').addEventListener('click',()=>{st.mode='day';update()});
 $('modeWeek').addEventListener('click',()=>{st.mode='week';update()});
-// "Tips per hour" / "Sales per hour". Each keeps its own hourly numbers, so switching
-// back and forth doesn't erase anything. buildDay() swaps the hour boxes over.
+// "Sales per game" / "Sales per hour" / "Tips per hour". Each keeps its own hourly
+// numbers (spg, sales, tips), so switching doesn't erase anything. buildDay() swaps the
+// hour boxes over.
+$('measureSpg').addEventListener('click',()=>{st.measure='spg';buildDay();update()});
 $('measureSales').addEventListener('click',()=>{st.measure='sales';buildDay();update()});
 $('measureTips').addEventListener('click',()=>{st.measure='tips';buildDay();update()});
-// Tip boxes (only typed in when measuring by sales; see update() in 6-update.js).
+// Tip boxes (only typed in when measuring by SPG or sales; see update() in 6-update.js).
 // The text is saved as typed and turned into a number when calculating.
 $('weekPool').addEventListener('input',e=>{st.weekPool=e.target.value;update()});
 $('dayPool').addEventListener('input',e=>{day().pool=e.target.value;update()});
@@ -64,12 +66,14 @@ $('split').addEventListener('change',e=>{st.split=e.target.checked;update()});
 // message says how many were found.
 // Careful: because only digits and dots are kept, a minus sign is dropped ("-5" -> 5),
 // and a thousands separator splits a number in two ("1,200" -> 1 and 200).
-$('pasteBtn').addEventListener('click',()=>{
+// fillFrom(list): put the pasted numbers into a day's list ('spg', 'sales' or 'tips')
+function fillFrom(list){
   const nums=$('paste').value.split(/[\s,;]+/).map(t=>t.replace(/[^\d.]/g,'')).filter(Boolean).map(Number).filter(n=>!isNaN(n));
   const d=day(),n=d.close-d.open;
   if(nums.length!==n){$('pasteErr').hidden=false;$('pasteErr').textContent=`Found ${nums.length} numbers. Paste exactly ${n}, one per hour from ${lbl(d.open)} to ${lbl(d.close)}.`;return}
   // Put the numbers into the open hours, first number = first open hour
-  nums.forEach((v,k)=>hourly(d)[d.open-START+k]=v);buildDay();update()});
+  nums.forEach((v,k)=>d[list][d.open-START+k]=v);buildDay();update()}
+$('pasteBtn').addEventListener('click',()=>fillFrom(measure()));
 // Hide the paste error as soon as the text is changed
 $('paste').addEventListener('input',()=>{$('pasteErr').hidden=true});
 

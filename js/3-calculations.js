@@ -5,8 +5,9 @@
 // someone got the amount they got, this is the file to read.
 //
 // The method in short:
-//   1. Busy level: for every open hour, take the hourly tips (or sales) and smooth
-//      them with a 3-hour moving average (ma). A higher number = a busier hour.
+//   1. Busy level: for every open hour, take the hourly value - sales per game (SPG),
+//      sales or tips, depending on the setting - and smooth it with a 3-hour moving
+//      average (ma). A higher number = a busier hour.
 //   2. Points: each person gets the busy level of every hour they worked, added up
 //      (dayPoints). Working the rush earns more points than working a quiet hour.
 //   3. Money: the tips are divided in proportion to points, in whole cents, so the
@@ -17,13 +18,13 @@
 // never any fractions of a cent and no floating-point rounding surprises.
 //
 // Uses: key (1), st, okShift, openVals, dayTips, weekTips (2)
-// Provides: ma(), dayPoints(), splitCents(), money(), compute(), eventSplit()
+// Provides: ma(), dayPoints(), splitCents(), money(), compute(), checkTotals(), eventSplit()
 // ==========================================================
 
 // ma: centred 3-hour moving average (the "busy level").
 // Each hour becomes the average of itself, the hour before and the hour after.
 // The first and last open hours only have one neighbour, so they average 2 values.
-// Example: hourly tips  20, 40, 90, 30
+// Example: hourly values 20, 40, 90, 30
 //          busy level   30, 50, 53.3, 60   ( (20+40)/2, (20+40+90)/3, (40+90+30)/3, (90+30)/2 )
 // Why smooth? One big table can make a single hour look very busy by luck. The
 // average shows how busy that part of the day really was, so it's fairer.
@@ -126,6 +127,21 @@ function compute(){
   // Fill in each person's day columns from their shifts, then their total (days + events)
   people.forEach((P,k)=>{slots[k].forEach(([i,j])=>P.days[i]+=dayCents[i][j]);P.total=P.days.reduce((a,b)=>a+b,0)+P.ev});
   return{pts,dayCents,people,evs};
+}
+
+// checkTotals: the numbers for the check rows under the week table (and in the Excel
+// export), all in cents. people = the people list from compute().
+//   paidDay[7] / paidEv / paidAll = what people actually receive per day / from events / in total
+//   entDay[7]  / entEv  / entAll  = the tips that were entered, in the same columns
+// entDay[i] is null when tips aren't entered per day ("One pool for the week" measured by
+// SPG or sales: there is only the one weekly amount), so there's nothing to compare.
+function checkTotals(people){
+  const isWeek=st.mode==='week';
+  const paidDay=DAYS.map((x,i)=>people.reduce((a,P)=>a+P.days[i],0)),paidEv=people.reduce((a,P)=>a+P.ev,0),paidAll=people.reduce((a,P)=>a+P.total,0);
+  const entDay=DAYS.map((x,i)=>isWeek&&measure()!=='tips'?null:Math.round(dayTips(st.days[i])*100));
+  const entEv=st.events.reduce((a,ev)=>a+Math.round(Math.max(0,parseFloat(ev.pool)||0)*100),0);
+  const entAll=(isWeek?Math.round(weekTips()*100):entDay.reduce((a,c)=>a+c,0))+entEv;
+  return{paidDay,paidEv,paidAll,entDay,entEv,entAll};
 }
 
 // eventSplit: divide one event's tips equally between the named people on it, in whole

@@ -20,13 +20,14 @@ function update(){
   // ---- Tips section: show which buttons are selected, and the matching explanations ----
   $('modeDay').setAttribute('aria-pressed',!isWeek);$('modeWeek').setAttribute('aria-pressed',isWeek);
   const w=measure();
-  $('measureSales').setAttribute('aria-pressed',w==='sales');$('measureTips').setAttribute('aria-pressed',w==='tips');
-  $('measureHint').textContent=w==='tips'?'An hour counts for more when more tips came in during it.':'An hour counts for more when the place sold more during it.';
+  $('measureSpg').setAttribute('aria-pressed',w==='spg');$('measureSales').setAttribute('aria-pressed',w==='sales');$('measureTips').setAttribute('aria-pressed',w==='tips');
+  $('measureHint').textContent={spg:'An hour counts for more when its sales per game (from your POS) were higher.',
+    sales:'An hour counts for more when the place sold more during it.',tips:'An hour counts for more when more tips came in during it.'}[w];
   // "Pool per day" shows a tip box on each day; "One pool for the week" shows one week box
   $('weekPoolWrap').hidden=!isWeek;$('dayPoolWrap').hidden=isWeek;
   // Tip boxes: when measuring by tips, the tips to split ARE the hourly tips added up,
   // so the boxes show that total and can't be typed in (read-only, dashed outline).
-  // When switching back to sales, the amounts that were typed before are put back.
+  // When switching back to SPG or sales, the amounts that were typed before are put back.
   const auto=w==='tips';
   if(auto){$('dayPool').value=dayTips(d).toFixed(2);$('weekPool').value=weekTips().toFixed(2)}
   else if($('dayPool').readOnly){$('dayPool').value=d.pool;$('weekPool').value=st.weekPool}
@@ -52,11 +53,11 @@ function update(){
   // A shift with no name: it can't be matched to anyone in the week total
   if(d.staff.some(p=>!key(p.name||'')&&okShift(p)))msgs.push('Someone has no name, so their tips won\'t appear in the week total.');
   // Tips that can't be paid out, because nobody earned any points: no valid shifts, or
-  // shifts only during hours where no sales/tips were entered (busy level 0).
+  // shifts only during hours with nothing entered (busy level 0).
   // Pool per day: checked day by day. One pool for the week: checked for the whole week.
   if(!isWeek){const lost=DAYS.filter((x,i)=>dayTips(st.days[i])>0&&!pts[i].some(r=>r.pts>0));
-    if(lost.length)msgs.push('Tips entered but not paid out on '+lost.join(', ')+` (no valid shifts or no hourly ${w} entered).`);}
-  else if(weekTips()>0&&!people.some(P=>P.pts>0))msgs.push(`Week tips entered but not paid out (no named shifts with hourly ${w} yet).`);
+    if(lost.length)msgs.push('Tips entered but not paid out on '+lost.join(', ')+` (no valid shifts or no hourly ${measureName()} entered).`);}
+  else if(weekTips()>0&&!people.some(P=>P.pts>0))msgs.push(`Week tips entered but not paid out (no named shifts with hourly ${measureName()} yet).`);
   $('shiftErr').hidden=!msgs.length;$('shiftErr').textContent=msgs.join(' ');
 
   // ---- "Split for <day>" table ----
@@ -86,12 +87,10 @@ function update(){
   //   Difference   = Paid out minus Tips entered: ✓ when equal, otherwise +/− the amount
   // With "One pool for the week", tips are split over the whole week, so a single day
   // can't be compared and its Difference shows "–". With "One pool for the week" AND
-  // sales, tips are only entered as one weekly amount, so the day columns of
-  // "Tips entered" show "–" too. All amounts here are in cents.
-  const paidDay=DAYS.map((x,i)=>people.reduce((a,P)=>a+P.days[i],0)),paidEv=people.reduce((a,P)=>a+P.ev,0);
-  const entDay=DAYS.map((x,i)=>isWeek&&w==='sales'?null:Math.round(dayTips(st.days[i])*100));
-  const entEv=st.events.reduce((a,ev)=>a+Math.round(Math.max(0,parseFloat(ev.pool)||0)*100),0);
-  const entAll=(isWeek?Math.round(weekTips()*100):entDay.reduce((a,c)=>a+c,0))+entEv;
+  // SPG or sales, tips are only entered as one weekly amount, so the day columns of
+  // "Tips entered" show "–" too. The amounts (in cents) come from checkTotals() in
+  // 3-calculations.js, which the Excel export uses as well, so both always agree.
+  const {paidDay,paidEv,entDay,entEv,entAll}=checkTotals(people);
   // diff(paid, entered): the text for one Difference cell (null = nothing to compare)
   const diff=(p,e)=>e===null?'–':p===e?'<span class="ok">✓</span>':`<span class="bad">${p>e?'+':'−'}${money(Math.abs(p-e))}</span>`;
   $('weekFoot').innerHTML=(people.length||entAll)?`<tr><td>Paid out</td>${paidDay.map(c=>`<td>${money(c)}</td>`).join('')}${hasEv?`<td>${money(paidEv)}</td>`:''}<td>${hrsAll}</td><td>${money(grand)}</td></tr>
@@ -103,7 +102,7 @@ function update(){
   const why=[];
   if(grand!==entAll){
     if(st.days.some(d=>d.staff.some(p=>!key(p.name||'')&&okShift(p))))why.push('someone has a shift but no name');
-    if(!isWeek&&DAYS.some((x,i)=>dayTips(st.days[i])>0&&!pts[i].some(r=>r.pts>0)))why.push(`a day has tips but no shift during an hour with ${w} entered`);
+    if(!isWeek&&DAYS.some((x,i)=>dayTips(st.days[i])>0&&!pts[i].some(r=>r.pts>0)))why.push(`a day has tips but no shift during an hour with ${measureName()} entered`);
     if(isWeek&&weekTips()>0&&!people.some(P=>P.pts>0))why.push('no named shifts with hourly numbers yet');
     if(st.events.some(ev=>(parseFloat(ev.pool)||0)>0&&!eventSplit(ev).length))why.push('an event has tips but nobody on it');
   }
