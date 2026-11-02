@@ -33,25 +33,31 @@ const ma=s=>s.map((v,i)=>{const a=s.slice(Math.max(0,i-1),i+2);return a.reduce((
 
 // dayPoints: points and hours for every person on one day.
 // Returns one {pts, hrs} per staff row, in the same order as d.staff.
-//   hrs = length of the shift (end - start), as shown in the tables.
-//   pts = the busy level of each hour worked, added up.
+//   hrs = length of the shift in hours (end - start), e.g. 7.5 for 10:30-18:00.
+//   pts = for each hour, the busy level x the part of that hour worked, added up.
+// Shift times can include minutes: they are stored as hours with a fraction
+// (10:30 = 10.5, 18:45 = 18.75), so working half of an hour earns half its busy level.
 // Example (share each hour OFF): busy level 30, 50, 53.3, 60 for 10:00-14:00.
-//   Ann works 10:00-12:00 -> 30 + 50   = 80 points
-//   Bob works 11:00-14:00 -> 50 + 53.3 + 60 = 163.3 points
-// If "share each hour" is ON, an hour's value is first divided by how many people were
-// working it (count[]). In the example, 11:00-12:00 has Ann and Bob, so each gets 50/2 = 25
-// for it: Ann = 30 + 25 = 55, Bob = 25 + 53.3 + 60 = 138.3.
+//   Ann works 10:00-12:00 -> 30 + 50          = 80 points
+//   Bob works 11:00-14:00 -> 50 + 53.3 + 60   = 163.3 points
+//   Cy  works 10:30-11:45 -> 30 x 0.5 + 50 x 0.75 = 52.5 points
+// If "share each hour" is ON, an hour's value is divided between the people working it,
+// in proportion to how much of the hour each worked (count[] = total person-hours in that
+// hour). Without Cy: 11:00-12:00 has Ann and Bob for a full hour each, so each gets
+// 50/2 = 25 for it: Ann = 30 + 25 = 55, Bob = 25 + 53.3 + 60 = 138.3.
 // Only the day's opening hours count: any part of a shift before opening or after
-// closing earns no points (inside() checks this). Shifts with the end before the start
-// (okShift fails) get 0 hours and 0 points.
+// closing earns no points (only open hours are looked at). Shifts with the end before
+// the start (okShift fails) get 0 hours and 0 points.
 function dayPoints(d){
-  // m = busy level for each open hour; count = people working each open hour (starts at 0)
-  const m=ma(openVals(d)),count=m.map(()=>0),inside=h=>h>=d.open&&h<d.close;
-  // First pass: count how many people work each hour (only needed for "share each hour")
-  d.staff.forEach(p=>{if(okShift(p))for(let h=p.s;h<p.e;h++)if(inside(h))count[h-d.open]++});
+  // m = busy level for each open hour; count = person-hours worked in each open hour
+  const m=ma(openVals(d)),count=m.map(()=>0);
+  // part(p, h): how much of the hour starting at h person p worked, from 0 (none) to 1 (all of it)
+  const part=(p,h)=>Math.max(0,Math.min(p.e,h+1)-Math.max(p.s,h));
+  // First pass: add up the person-hours in each hour (only needed for "share each hour")
+  d.staff.forEach(p=>{if(okShift(p))m.forEach((x,i)=>count[i]+=part(p,d.open+i))});
   // Second pass: add up each person's points, hour by hour
   return d.staff.map(p=>{let pts=0,hrs=0;
-    if(okShift(p)){hrs=p.e-p.s;for(let h=p.s;h<p.e;h++)if(inside(h)){const i=h-d.open;pts+=st.split?m[i]/count[i]:m[i]}}
+    if(okShift(p)){hrs=p.e-p.s;m.forEach((x,i)=>{const f=part(p,d.open+i);if(f)pts+=st.split?x*f/count[i]:x*f})}
     return{pts,hrs}});
 }
 

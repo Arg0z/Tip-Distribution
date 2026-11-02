@@ -61,10 +61,10 @@ function update(){
   $('shiftErr').hidden=!msgs.length;$('shiftErr').textContent=msgs.join(' ');
 
   // ---- "Split for <day>" table ----
-  // One row per person with a valid shift: hours, points (rounded for display only),
+  // One row per person with a valid shift: hours (e.g. 7.5 for 7 h 30 min), points (rounded for display only),
   // share of the day's points in %, and their tips for the day.
   const tot=dp.reduce((a,r)=>a+r.pts,0);
-  $('dayRes').innerHTML=d.staff.map((p,k)=>dp[k].hrs?`<tr><td>${esc(p.name||'—')}</td><td>${dp[k].hrs}</td><td>${Math.round(dp[k].pts).toLocaleString()}</td><td>${tot?(dp[k].pts/tot*100).toFixed(1):'0.0'}%</td><td class="amt">${money(Math.round(dc[k]))}</td></tr>`:'').join('')||'<tr><td colspan="5" style="color:var(--muted)">Nobody has a shift on this day yet.</td></tr>';
+  $('dayRes').innerHTML=d.staff.map((p,k)=>dp[k].hrs?`<tr><td>${esc(p.name||'—')}</td><td>${hrsTxt(dp[k].hrs)}</td><td>${Math.round(dp[k].pts).toLocaleString()}</td><td>${tot?(dp[k].pts/tot*100).toFixed(1):'0.0'}%</td><td class="amt">${money(Math.round(dc[k]))}</td></tr>`:'').join('')||'<tr><td colspan="5" style="color:var(--muted)">Nobody has a shift on this day yet.</td></tr>';
 
   // ---- Events: result table and warnings on each card ----
   showEvents(evs);
@@ -78,7 +78,7 @@ function update(){
   let grand=0,hrsAll=0;
   people.sort((a,b)=>b.total-a.total);
   $('weekRes').innerHTML=people.map(P=>{grand+=P.total;hrsAll+=P.hrs;
-    return `<tr><td>${esc(P.name)}</td>${P.days.map((c,i)=>`<td>${P.worked[i]?money(Math.round(c)):'–'}</td>`).join('')}${hasEv?`<td>${P.ev?money(P.ev):'–'}</td>`:''}<td>${P.hrs}</td><td class="amt">${money(P.total)}</td></tr>`}).join('')||`<tr><td colspan="${hasEv?11:10}" style="color:var(--muted)">Add people to a day or event to see the week total.</td></tr>`;
+    return `<tr><td>${esc(P.name)}</td>${P.days.map((c,i)=>`<td>${P.worked[i]?money(Math.round(c)):'–'}</td>`).join('')}${hasEv?`<td>${P.ev?money(P.ev):'–'}</td>`:''}<td>${hrsTxt(P.hrs)}</td><td class="amt">${money(P.total)}</td></tr>`}).join('')||`<tr><td colspan="${hasEv?11:10}" style="color:var(--muted)">Add people to a day or event to see the week total.</td></tr>`;
 
   // ---- Check rows at the bottom of the week table ----
   // These let you confirm that every cent entered was paid out:
@@ -93,7 +93,7 @@ function update(){
   const {paidDay,paidEv,entDay,entEv,entAll}=checkTotals(people);
   // diff(paid, entered): the text for one Difference cell (null = nothing to compare)
   const diff=(p,e)=>e===null?'–':p===e?'<span class="ok">✓</span>':`<span class="bad">${p>e?'+':'−'}${money(Math.abs(p-e))}</span>`;
-  $('weekFoot').innerHTML=(people.length||entAll)?`<tr><td>Paid out</td>${paidDay.map(c=>`<td>${money(c)}</td>`).join('')}${hasEv?`<td>${money(paidEv)}</td>`:''}<td>${hrsAll}</td><td>${money(grand)}</td></tr>
+  $('weekFoot').innerHTML=(people.length||entAll)?`<tr><td>Paid out</td>${paidDay.map(c=>`<td>${money(c)}</td>`).join('')}${hasEv?`<td>${money(paidEv)}</td>`:''}<td>${hrsTxt(hrsAll)}</td><td>${money(grand)}</td></tr>
     <tr class="check"><td>Tips entered</td>${entDay.map(c=>`<td>${c===null?'–':money(c)}</td>`).join('')}${hasEv?`<td>${money(entEv)}</td>`:''}<td></td><td>${money(entAll)}</td></tr>
     <tr class="check"><td>Difference</td>${DAYS.map((x,i)=>`<td>${isWeek?'–':diff(paidDay[i],entDay[i])}</td>`).join('')}${hasEv?`<td>${diff(paidEv,entEv)}</td>`:''}<td></td><td>${diff(grand,entAll)}</td></tr>`:'';
   // If the totals don't match, show a red line under the table saying by how much, with

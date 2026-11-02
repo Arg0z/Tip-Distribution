@@ -28,7 +28,9 @@
 //       sales: 24 numbers, sales per hour, one per slot of the hour grid
 //       spg:   24 numbers, sales per game per hour, same layout
 //       tips:  24 numbers, tips per hour, same layout
-//       staff: [ { name, s = start hour, e = end hour }, ... ]  e.g. {name:"Ann", s:10, e:18}
+//       staff: [ { name, s = start time, e = end time }, ... ]  e.g. {name:"Ann", s:10.5, e:18}
+//              Times are hours with a fraction for the minutes: 10.5 = 10:30, 18.75 = 18:45,
+//              24.25 = 00:15 after midnight (see tm() / fromTm() in 1-settings.js)
 //     }
 //   events: [ { name, date, pool = the event's tips, staff: [ {name}, ... ] }, ... ]
 // }

@@ -7,7 +7,7 @@
 // files use over and over.
 //
 // Uses: nothing (loaded first).
-// Provides: START, N, OPEN, CLOSE, DAYS, lbl, esc, key, empty()
+// Provides: START, N, OPEN, CLOSE, DAYS, lbl, tm, fromTm, hrsTxt, esc, key, empty()
 // ==========================================================
 
 // ---- The hour grid ----
@@ -33,6 +33,15 @@ const OPEN=10,CLOSE=25;
 // lbl: turn an hour number into the text shown on screen, "HH:00".
 // h%24 wraps hours past midnight back round: 24 -> "00:00", 25 -> "01:00".
 const lbl=h=>String(h%24).padStart(2,'0')+':00';
+// tm: turn a shift time into "HH:MM". Shift times are hours with a fraction for the
+// minutes, e.g. 10.5 -> "10:30", 24.75 -> "00:45" (after midnight).
+const tm=h=>{const m=Math.round(h*60);return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+// fromTm: the opposite - read "HH:MM" (as typed in a time box) back into hours, rounded to
+// the minute. Times before 06:00 (START) are after midnight, so 24 is added: "00:45" -> 24.75.
+// Returns NaN (not a number) if the text isn't a time.
+const fromTm=t=>{const x=/^(\d{1,2}):(\d{2})/.exec(t||'');if(!x)return NaN;const h=+x[1]+(+x[2])/60;return h<START?h+24:h};
+// hrsTxt: hours for the tables, with up to 2 decimals and no trailing zeros: 8 -> "8", 7.5 -> "7.5"
+const hrsTxt=h=>String(Math.round(h*100)/100);
 // esc: make text safe to put inside HTML. Names are typed by people, and a name like
 // "<b>Ann" or "Bob & Co" would otherwise break the page layout. Each special character
 // is swapped for its HTML code (& -> &amp;, < -> &lt;, and so on), so it shows as text.

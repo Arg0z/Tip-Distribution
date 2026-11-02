@@ -57,6 +57,8 @@ button:disabled{opacity:.45;cursor:default}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 /* One staff row: name (widest), start, end, and a 40px remove button */
 .shift{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) 40px;gap:8px;align-items:center;margin-bottom:8px}
+/* Start/End time boxes: less side padding so "10:30" fits on narrow phones */
+.shift input[type=time]{padding-left:6px;padding-right:6px}
 /* .x: the small square remove buttons */
 .x{padding:0;width:40px;color:var(--muted)}
 /* Day tabs: 7 equal columns; the selected day (aria-pressed="true") is filled blue */

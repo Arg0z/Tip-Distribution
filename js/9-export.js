@@ -14,7 +14,7 @@
 // Money is written as real numbers (not text) with 2 decimals, so Excel can add it up.
 //
 // Uses: compute(), checkTotals(), ma() (3), st, measure(), okShift(), openVals(),
-//       dayTips(), $() (2), DAYS, START, lbl (1)
+//       dayTips(), $() (2), DAYS, START, lbl, tm (1)
 // Provides: downloads, saveFile(), weekRows(), dayRows(), eventRows(), exportBook()
 // ==========================================================
 
@@ -46,6 +46,8 @@ async function saveFile(name,buf){
 // xMoney(cents): a money cell, e.g. 1234 -> 12.34 shown with 2 decimals
 const xMoney=c=>({t:'n',v:c/100,z:'0.00'});
 // xNum(value, format): a number cell with an Excel number format, e.g. '0.0%'
+// xHrs(hours): hours as a plain number rounded to 2 decimals, e.g. 7.5 (7 h 30 min)
+const xHrs=h=>Math.round(h*100)/100;
 const xNum=(v,z)=>({t:'n',v,z});
 // xDiff(paid, entered): a Difference cell (in cents). Shows +1.06 / -1.06, or ✓ when they
 // match. "–" when there is nothing to compare (entered is null).
@@ -67,9 +69,9 @@ function weekRows(r){
   const rows=[['Tip split – week'],['Tip pool',isWeek?'One pool for the week':'Pool per day'],
     ['Busy hours measured by',measureLabel()],['Share each hour',st.split?'On':'Off'],[],
     ['Name',...DAYS,...ev('Events'),'Hours','Total']];
-  ppl.forEach(P=>rows.push([P.name,...P.days.map((x,i)=>P.worked[i]?xMoney(x):null),...ev(P.ev?xMoney(P.ev):null),P.hrs,xMoney(P.total)]));
+  ppl.forEach(P=>rows.push([P.name,...P.days.map((x,i)=>P.worked[i]?xMoney(x):null),...ev(P.ev?xMoney(P.ev):null),xHrs(P.hrs),xMoney(P.total)]));
   // Check rows, the same as under the table on the page (see checkTotals in 3-calculations.js)
-  rows.push(['Paid out',...c.paidDay.map(xMoney),...ev(xMoney(c.paidEv)),ppl.reduce((a,P)=>a+P.hrs,0),xMoney(c.paidAll)]);
+  rows.push(['Paid out',...c.paidDay.map(xMoney),...ev(xMoney(c.paidEv)),xHrs(ppl.reduce((a,P)=>a+P.hrs,0)),xMoney(c.paidAll)]);
   rows.push(['Tips entered',...c.entDay.map(e=>e===null?'–':xMoney(e)),...ev(xMoney(c.entEv)),null,xMoney(c.entAll)]);
   rows.push(['Difference',...DAYS.map((x,i)=>isWeek?'–':xDiff(c.paidDay[i],c.entDay[i])),...ev(xDiff(c.paidEv,c.entEv)),null,xDiff(c.paidAll,c.entAll)]);
   return rows;
@@ -92,14 +94,14 @@ function dayRows(i,r){
   // One row per person with a valid shift (the same rows as the table on the page)
   let hrs=0;
   d.staff.forEach((p,k)=>{if(!dp[k].hrs)return;hrs+=dp[k].hrs;
-    rows.push([p.name||'—',lbl(p.s),lbl(p.e),dp[k].hrs,xNum(dp[k].pts,'#,##0.0'),xNum(tot?dp[k].pts/tot:0,'0.0%'),xMoney(dc[k])])});
-  rows.push(['Total',null,null,hrs,xNum(tot,'#,##0.0'),xNum(tot?1:0,'0.0%'),xMoney(cents)]);
+    rows.push([p.name||'—',tm(p.s),tm(p.e),xHrs(dp[k].hrs),xNum(dp[k].pts,'#,##0.0'),xNum(tot?dp[k].pts/tot:0,'0.0%'),xMoney(dc[k])])});
+  rows.push(['Total',null,null,xHrs(hrs),xNum(tot,'#,##0.0'),xNum(tot?1:0,'0.0%'),xMoney(cents)]);
   // Hour by hour
   const m=ma(openVals(d));
   rows.push([],['Hour',{spg:'Sales per game',sales:'Sales',tips:'Tips'}[w],'Busy level','People working']);
   for(let h=d.open;h<d.close;h++){const j=h-START,busy=xNum(m[h-d.open],'0.00');
-    // on = how many valid shifts include this hour
-    const on=d.staff.filter(p=>okShift(p)&&p.s<=h&&h<p.e).length,hour=`${lbl(h)}–${lbl(h+1)}`;
+    // on = how many valid shifts include at least part of this hour
+    const on=d.staff.filter(p=>okShift(p)&&p.s<h+1&&p.e>h).length,hour=`${lbl(h)}–${lbl(h+1)}`;
     rows.push([hour,xNum(d[w][j],'0.00'),busy,on]);
   }
   return rows;
