@@ -101,7 +101,7 @@ function dayRows(i,r){
   rows.push([],['Hour',{spg:'Sales per game',sales:'Sales',tips:'Tips'}[w],'Busy level','People working']);
   for(let h=d.open;h<d.close;h++){const j=h-START,busy=xNum(m[h-d.open],'0.00');
     // on = how many valid shifts include at least part of this hour
-    const on=d.staff.filter(p=>okShift(p)&&p.s<h+1&&p.e>h).length,hour=`${lbl(h)}–${lbl(h+1)}`;
+    const on=d.staff.filter(p=>okShift(p)&&p.s<h+1&&p.e>h).length,hour=hourLbl(h);
     rows.push([hour,xNum(d[w][j],'0.00'),busy,on]);
   }
   return rows;

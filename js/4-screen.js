@@ -49,9 +49,9 @@ function buildDay(){
   $('hoursHint').textContent=w==='spg'
     ?`Sales per game for each hour, ${lbl(d.open)} to ${lbl(d.close)}, as shown in your POS. You can also paste ${n} numbers at once.`
     :`Total ${w} for the whole place in each hour, ${lbl(d.open)} to ${lbl(d.close)}. You can also paste ${n} numbers from your POS.`;
-  // One number box per open hour, labelled e.g. "10:00–11:00".
+  // One number box per open hour, labelled e.g. "11:00 (10:00 - 11:00)" (see hourLbl).
   // data-i = the slot in the 24-slot grid, so typing knows where to save the number.
-  $('hours').innerHTML=openVals(d).map((v,k)=>{const h=d.open+k;return `<label>${lbl(h)}–${lbl(h+1)}<input type="number" inputmode="decimal" min="0" data-i="${h-START}" value="${v}"></label>`}).join('');
+  $('hours').innerHTML=openVals(d).map((v,k)=>{const h=d.open+k;return `<label>${hourLbl(h)}<input type="number" inputmode="decimal" min="0" data-i="${h-START}" value="${v}"></label>`}).join('');
   // Typing in an hour box saves the number (empty or negative counts as 0) and recalculates
   $('hours').querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{hourly(day())[+inp.dataset.i]=Math.max(0,parseFloat(inp.value)||0);update()}));
   // Empty the paste box, and disable "Copy people from previous day" on Monday

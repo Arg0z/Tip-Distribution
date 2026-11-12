@@ -7,7 +7,7 @@
 // files use over and over.
 //
 // Uses: nothing (loaded first).
-// Provides: START, N, OPEN, CLOSE, DAYS, lbl, tm, fromTm, hrsTxt, esc, key, empty()
+// Provides: START, N, OPEN, CLOSE, DAYS, lbl, hourLbl, tm, fromTm, hrsTxt, esc, key, empty()
 // ==========================================================
 
 // ---- The hour grid ----
@@ -33,6 +33,10 @@ const OPEN=10,CLOSE=25;
 // lbl: turn an hour number into the text shown on screen, "HH:00".
 // h%24 wraps hours past midnight back round: 24 -> "00:00", 25 -> "01:00".
 const lbl=h=>String(h%24).padStart(2,'0')+':00';
+// hourLbl: the description of the one-hour slot that starts at hour h, named after the hour
+// it ends (the way POS reports label hours), with the full range in brackets:
+// 8 -> "9:00 (8:00 - 9:00)", 23 -> "0:00 (23:00 - 0:00)". No leading zeros.
+const hourLbl=h=>{const t=x=>(x%24)+':00';return `${t(h+1)} (${t(h)} - ${t(h+1)})`};
 // tm: turn a shift time into "HH:MM". Shift times are hours with a fraction for the
 // minutes, e.g. 10.5 -> "10:30", 24.75 -> "00:45" (after midnight).
 const tm=h=>{const m=Math.round(h*60);return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
