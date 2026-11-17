@@ -21,7 +21,7 @@
 
   Privacy: nothing is sent to a server. Everything typed is kept in this browser
   (localStorage) on this device. The only things loaded from the internet are the
-  fonts (Google Fonts) and the SheetJS library used for the Excel export.
+  fonts (Google Fonts) and the xlsx-js-style library used for the Excel export.
 
   Most boxes and tables below start empty: the JavaScript fills them in. Elements
   the JavaScript needs to find have an id="..." (e.g. id="weekPool"). -->
@@ -136,7 +136,7 @@
      The bottom rows (<tfoot>) compare "Paid out" with "Tips entered" and show the
      Difference; id="weekCheck" explains any gap in red.
      Buttons: Export to Excel (the whole week table with its check rows, plus a sheet per
-     day and one for events; hidden if SheetJS couldn't load) and Clear the week. -->
+     day and one for events; hidden if xlsx-js-style couldn't load) and Clear the week. -->
 <section>
   <h2>Week total</h2>
   <p class="hint">Each person's tips for every day, plus events, added up.</p>
@@ -149,8 +149,9 @@
 </section>
 </main>
 
-<!-- SheetJS: a library that builds the .xlsx file for the Excel export (pinned to version 0.18.5) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- xlsx-js-style: builds the .xlsx files for the Excel export (pinned to version 1.2.0).
+     It is the SheetJS library (0.18.5) plus cell colours, borders and bold text. -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <!-- All logic lives in the js/ folder, one file per job. ORDER MATTERS: each file can use
      things made by the files above it, and 10-start.js must be last because it draws the page.
      Each file starts with a comment saying what it uses from the others and what it provides. -->
