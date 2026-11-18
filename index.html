@@ -72,7 +72,8 @@
      - Opening hours: add/remove an hour at the start or end of the day
      - Who worked: one row per person with name, start and end (built by buildShifts);
        start and end are time boxes with minutes (e.g. 10:30);
-       <datalist id="names"> holds the name suggestions; id="shiftErr" shows warnings
+       <datalist id="names"> holds the name suggestions; id="timeErr" says when a typed time can't be read;
+       id="shiftErr" shows warnings
      - Hourly numbers (SPG, sales or tips): one box per open hour, plus a box to paste a
        whole column at once
      - The busy-hours chart (js/7-chart.js)
@@ -93,9 +94,10 @@
   </div>
 
   <h3>Who worked</h3>
-  <p class="hint">Write names the same way each day so the week total adds them up. Names you've used before are suggested as you type.</p>
+  <p class="hint">Write names the same way each day so the week total adds them up. Names you've used before are suggested as you type. Type times like 10:30, 1030, 10 or 6pm, or pick one on the clock with the clock button; times before 6:00 count as after midnight.</p>
   <div class="shift" style="font-size:12px;color:var(--muted);margin-bottom:4px"><span>Name</span><span>Start</span><span>End</span><span></span></div>
   <div id="shifts"></div>
+  <p class="err" id="timeErr" hidden></p>
   <datalist id="names"></datalist>
   <div class="row"><button id="addBtn">Add person</button><button id="copyBtn">Copy people from previous day</button></div>
   <p class="err" id="shiftErr" hidden></p>
@@ -149,6 +151,23 @@
 </section>
 </main>
 
+<!-- The clock window, opened by the clock button in each Start/End box (js/4b-clock.js):
+     two boxes at the top to type the hour and minutes, a clock face to tap or drag on,
+     and Cancel / OK. It covers the page (dimmed) until it is closed. -->
+<div class="ckwrap" id="clockWrap" hidden>
+  <div class="clock" role="dialog" aria-modal="true" aria-labelledby="clockTitle">
+    <div class="ck-title" id="clockTitle">Pick a time</div>
+    <div class="ck-fields">
+      <input id="ckH" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="Hour (0 to 23)">
+      <span aria-hidden="true">:</span>
+      <input id="ckM" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="Minutes (0 to 59)">
+    </div>
+    <svg id="ckDial" viewBox="0 0 256 256" role="presentation"></svg>
+    <p class="ck-hint" id="ckHint"></p>
+    <div class="ck-btns"><button type="button" id="ckCancel">Cancel</button><button type="button" id="ckOk">OK</button></div>
+  </div>
+</div>
+
 <!-- xlsx-js-style: builds the .xlsx files for the Excel export (pinned to version 1.2.0).
      It is the SheetJS library (0.18.5) plus cell colours, borders and bold text. -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
@@ -159,6 +178,7 @@
 <script src="js/2-state.js"></script>        <!-- saved data (st), loading/saving, repairs for old saves -->
 <script src="js/3-calculations.js"></script> <!-- the maths: busy level, points, splitting money in cents -->
 <script src="js/4-screen.js"></script>       <!-- builds day tabs, opening hours, hourly boxes, staff rows -->
+<script src="js/4b-clock.js"></script>       <!-- the clock window for picking shift times -->
 <script src="js/5-events.js"></script>       <!-- the Events section: cards and equal splits -->
 <script src="js/6-update.js"></script>       <!-- saves, recalculates and redraws results after every change -->
 <script src="js/7-chart.js"></script>        <!-- the busy-hours chart (SVG) -->

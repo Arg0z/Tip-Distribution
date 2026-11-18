@@ -9,7 +9,7 @@
 // which recalculates the results. That way the box you're typing in keeps its cursor.
 //
 // Uses: 1, 2, and update() from 6-update.js
-// Provides: buildDays(), inHours(), clampShifts(), buildDay(), buildNames(), buildShifts()
+// Provides: buildDays(), inHours(), clampShifts(), buildDay(), buildNames(), commitTime(), buildShifts()
 // ==========================================================
 
 // buildDays: draw the Mon..Sun tabs. Under each day name there is a small total
@@ -70,27 +70,45 @@ function buildNames(){
   $('names').innerHTML=Object.values(seen).map(n=>`<option value="${esc(n)}">`).join('');
 }
 
-// buildShifts: one row per person on the selected day: name box, Start and End time boxes
-// (hours and minutes, e.g. 10:30) and a ✕ button to remove them.
+// commitTime(el): save what's in a Start/End box. Called when you press Enter or leave the
+// box (not while typing, so "1" on the way to "1030" isn't taken as 01:00), and by the picker.
+//   - text that isn't a time: red outline and a message; the saved time stays as it was
+//   - otherwise it's saved as hours (10:30 -> 10.5). Times before 06:00 are after midnight
+//     (fromTm adds 24), and an end time of 06:00 means 06:00 the next morning when that's
+//     the only way it can come after the start. The time is kept inside the opening hours,
+//     and the box is tidied to HH:MM (e.g. "6pm" -> "18:00", "15:20" past closing -> "14:00").
+function commitTime(el){const d=day(),p=d.staff[+el.dataset.i],k=el.dataset.k;let h=fromTm(el.value);
+  if(isNaN(h)){el.classList.add('bad');$('timeErr').hidden=false;
+    $('timeErr').textContent=`Couldn't read "${el.value}" as a time. Type it like 10:30, 1030, 10 or 6pm, or use the clock button.`;return}
+  el.classList.remove('bad');if(!$('shifts').querySelector('.bad'))$('timeErr').hidden=true;
+  if(k==='e'&&h<=p.s&&h+24<=START+N)h+=24;
+  p[k]=inHours(d,h);el.value=tm(p[k]);update()}
+
+// buildShifts: one row per person on the selected day: name box, Start and End boxes
+// (type a time, e.g. 10:30, 1030 or 6pm - see fromTm in 1-settings.js - or pick one on
+// the clock with the clock button, see 4b-clock.js) and a ✕ button to remove them.
 // data-i = the person's position in the day's staff list; data-k = which field the input
 // changes ("name", "s" for start, "e" for end).
 function buildShifts(){
-  const d=day();
+  const d=day();closePicker();
+  // tbox(label, i, k, h): one Start/End box showing time h as HH:MM, with its clock button
+  const tbox=(label,i,k,h)=>`<div class="tcell"><input class="time" aria-label="${label}" data-i="${i}" data-k="${k}" value="${tm(h)}" placeholder="10:30" autocomplete="off" spellcheck="false"><button type="button" class="tpick" aria-label="Pick ${label.toLowerCase()} time on a clock" title="Pick on a clock">${CLOCK_ICON}</button></div>`;
   $('shifts').innerHTML=d.staff.map((p,i)=>`<div class="shift">
     <input aria-label="Name" list="names" data-i="${i}" data-k="name" value="${esc(p.name)}" placeholder="Name" autocomplete="off">
-    <input type="time" aria-label="Start" data-i="${i}" data-k="s" value="${tm(p.s)}">
-    <input type="time" aria-label="End" data-i="${i}" data-k="e" value="${tm(p.e)}">
+    ${tbox('Start',i,'s',p.s)}
+    ${tbox('End',i,'e',p.e)}
     <button class="x" aria-label="Remove ${esc(p.name||'person')}" data-rm="${i}">✕</button></div>`).join('')||'<p class="hint">Nobody added for this day yet.</p>';
+  $('timeErr').hidden=true;
   // Typing a name saves it straight into st
   $('shifts').querySelectorAll('[data-k="name"]').forEach(el=>el.addEventListener('input',()=>{day().staff[+el.dataset.i].name=el.value;update()}));
-  // Changing a time saves it as hours (10:30 -> 10.5). Times before 06:00 are after midnight
-  // (fromTm adds 24), and an end time of 06:00 means 06:00 the next morning when that's the
-  // only way it can come after the start. The time is then kept inside the opening hours;
-  // if it had to be moved, the box shows the corrected time. A half-typed time is ignored.
-  $('shifts').querySelectorAll('[data-k="s"],[data-k="e"]').forEach(el=>el.addEventListener('change',()=>{
-    const d=day(),p=d.staff[+el.dataset.i],k=el.dataset.k;let h=fromTm(el.value);if(isNaN(h))return;
-    if(k==='e'&&h<=p.s&&h+24<=START+N)h+=24;
-    p[k]=inHours(d,h);if(p[k]!==h)el.value=tm(p[k]);update()}));
+  // Time boxes: saved on Enter or when you leave the box (see commitTime above)
+  $('shifts').querySelectorAll('.time').forEach(el=>{
+    el.addEventListener('change',()=>commitTime(el));
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commitTime(el)}});
+    // Clicking into a box selects its time, so typing replaces it straight away
+    el.addEventListener('focus',()=>el.select())});
+  // Clock buttons: open the clock window for the box next to it (see 4b-clock.js)
+  $('shifts').querySelectorAll('.tpick').forEach(b=>b.addEventListener('click',()=>openPicker(b.previousElementSibling)));
   // When you leave a name box, refresh the name suggestions so the new name is offered
   $('shifts').querySelectorAll('[data-k="name"]').forEach(el=>el.addEventListener('blur',buildNames));
   // ✕ removes that person from this day only

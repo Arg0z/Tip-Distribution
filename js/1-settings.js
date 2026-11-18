@@ -40,10 +40,19 @@ const hourLbl=h=>{const t=x=>(x%24)+':00';return `${t(h+1)} (${t(h)} - ${t(h+1)}
 // tm: turn a shift time into "HH:MM". Shift times are hours with a fraction for the
 // minutes, e.g. 10.5 -> "10:30", 24.75 -> "00:45" (after midnight).
 const tm=h=>{const m=Math.round(h*60);return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
-// fromTm: the opposite - read "HH:MM" (as typed in a time box) back into hours, rounded to
-// the minute. Times before 06:00 (START) are after midnight, so 24 is added: "00:45" -> 24.75.
-// Returns NaN (not a number) if the text isn't a time.
-const fromTm=t=>{const x=/^(\d{1,2}):(\d{2})/.exec(t||'');if(!x)return NaN;const h=+x[1]+(+x[2])/60;return h<START?h+24:h};
+// fromTm: the opposite - read a time as typed into a Start/End box back into hours.
+// Accepts the usual ways of writing a time (spaces and capitals don't matter):
+//   "10:30", "10.30", "10h30", "1030" -> 10.5      "10" -> 10      "930" -> 9.5
+//   "6pm" -> 18, "6:30 pm" -> 18.5, "12am" -> 0, "12pm" -> 12  (also just "a" / "p")
+// Times before 06:00 (START) are after midnight, so 24 is added: "00:45" -> 24.75.
+// Returns NaN (not a number) if the text isn't a time (e.g. "25:00", "10:75", "abc").
+// x = the pieces: [1] hours (1-2 digits), [2] minutes (2 digits, optional), [3] am/pm (optional).
+// For digits only, e.g. "930", the hours take as many digits as still leave 2 for the minutes.
+const fromTm=t=>{const x=/^(\d{1,2})(?:[:.h]?(\d{2}))?(am?|pm?)?$/.exec(String(t||'').trim().toLowerCase().replace(/\s+/g,''));
+  if(!x)return NaN;let h=+x[1];const m=+(x[2]||0),ap=x[3];
+  if(m>59||(ap?h<1||h>12:h>23))return NaN;
+  if(ap)h=h%12+(ap[0]==='p'?12:0);
+  h+=m/60;return h<START?h+24:h};
 // hrsTxt: hours for the tables, with up to 2 decimals and no trailing zeros: 8 -> "8", 7.5 -> "7.5"
 const hrsTxt=h=>String(Math.round(h*100)/100);
 // esc: make text safe to put inside HTML. Names are typed by people, and a name like
