@@ -62,9 +62,20 @@ function update(){
 
   // ---- "Split for <day>" table ----
   // One row per person with a valid shift: hours (e.g. 7.5 for 7 h 30 min), points (rounded for display only),
-  // share of the day's points in %, and their tips for the day.
-  const tot=dp.reduce((a,r)=>a+r.pts,0);
-  $('dayRes').innerHTML=d.staff.map((p,k)=>dp[k].hrs?`<tr><td>${esc(p.name||'—')}</td><td>${hrsTxt(dp[k].hrs)}</td><td>${Math.round(dp[k].pts).toLocaleString()}</td><td>${tot?(dp[k].pts/tot*100).toFixed(1):'0.0'}%</td><td class="amt">${money(Math.round(dc[k]))}</td></tr>`:'').join('')||'<tr><td colspan="5" style="color:var(--muted)">Nobody has a shift on this day yet.</td></tr>';
+  // share of the day's points in %, and their tips from shifts. If events were held that
+  // day, two more columns - Events (their event tips) and Total (shifts + events) - a row for
+  // anyone who only worked an event ("–" for hours/points/share/tips), a Total row, and a
+  // line under the table listing the events. The rows come from dayReport() (3-calculations.js),
+  // which the Excel day sheet uses too.
+  const rep=dayReport(st.cur,{pts,dayCents,evs}),hasDayEv=rep.events.length>0,dash='–';
+  $('dayHead').innerHTML=`<tr><th>Name</th><th>Hours</th><th>Points</th><th>Share</th><th>Tips</th>${hasDayEv?'<th>Events</th><th>Total</th>':''}</tr>`;
+  $('dayRes').innerHTML=rep.rows.map(x=>{const shift=x.s!==null;
+    return `<tr><td>${esc(x.name)}</td><td>${shift?hrsTxt(x.hrs):dash}</td><td>${shift?Math.round(x.pts).toLocaleString():dash}</td><td>${shift?(x.share*100).toFixed(1)+'%':dash}</td>`
+      +(hasDayEv?`<td>${shift?money(x.tips):dash}</td><td>${x.ev?money(x.ev):dash}</td><td class="amt">${money(x.total)}</td>`:`<td class="amt">${money(x.tips)}</td>`)+'</tr>'}).join('')
+    ||`<tr><td colspan="${hasDayEv?7:5}" style="color:var(--muted)">Nobody has a shift on this day yet.</td></tr>`;
+  $('dayFoot').innerHTML=hasDayEv?`<tr><td>Total</td><td>${hrsTxt(rep.tot.hrs)}</td><td>${Math.round(rep.tot.pts).toLocaleString()}</td><td></td><td>${money(rep.tot.tips)}</td><td>${money(rep.tot.ev)}</td><td>${money(rep.tot.total)}</td></tr>`:'';
+  $('dayEvNote').hidden=!hasDayEv;
+  $('dayEvNote').textContent=hasDayEv?'Events this day: '+rep.events.map(e=>`${e.name} (${money(e.cents)})`).join(', ')+'.':'';
 
   // ---- Events: result table and warnings on each card ----
   showEvents(evs);

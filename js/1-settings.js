@@ -7,7 +7,7 @@
 // files use over and over.
 //
 // Uses: nothing (loaded first).
-// Provides: START, N, OPEN, CLOSE, DAYS, lbl, hourLbl, tm, fromTm, hrsTxt, esc, key, empty()
+// Provides: START, N, OPEN, CLOSE, DAYS, lbl, hourLbl, tm, fromTm, dayOfDate, hrsTxt, esc, key, empty()
 // ==========================================================
 
 // ---- The hour grid ----
@@ -53,6 +53,9 @@ const fromTm=t=>{const x=/^(\d{1,2})(?:[:.h]?(\d{2}))?(am?|pm?)?$/.exec(String(t
   if(m>59||(ap?h<1||h>12:h>23))return NaN;
   if(ap)h=h%12+(ap[0]==='p'?12:0);
   h+=m/60;return h<START?h+24:h};
+// dayOfDate: which day of the week a date is, as a day tab number (0 = Mon ... 6 = Sun),
+// e.g. "2026-11-19" -> 3 (Thursday). null if the text isn't a date (YYYY-MM-DD).
+const dayOfDate=t=>{const x=/^(\d{4})-(\d{2})-(\d{2})$/.exec(t||'');if(!x)return null;const g=new Date(+x[1],+x[2]-1,+x[3]).getDay();return isNaN(g)?null:(g+6)%7};
 // hrsTxt: hours for the tables, with up to 2 decimals and no trailing zeros: 8 -> "8", 7.5 -> "7.5"
 const hrsTxt=h=>String(Math.round(h*100)/100);
 // esc: make text safe to put inside HTML. Names are typed by people, and a name like

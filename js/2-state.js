@@ -32,7 +32,8 @@
 //              Times are hours with a fraction for the minutes: 10.5 = 10:30, 18.75 = 18:45,
 //              24.25 = 00:15 after midnight (see tm() / fromTm() in 1-settings.js)
 //     }
-//   events: [ { name, date, pool = the event's tips, staff: [ {name}, ... ] }, ... ]
+//   events: [ { name, date, day = which day it was held (0 = Mon ... 6 = Sun, or null if not
+//               chosen), pool = the event's tips, staff: [ {name}, ... ] }, ... ]
 // }
 // st is stored in the browser's localStorage (under the name 'tipsplit-week-v2'), so
 // everything is still there after closing and reopening the page on the same device and
@@ -68,6 +69,8 @@ st.days.forEach(d=>{
 if(!Array.isArray(st.events))st.events=[];
 // Events used to have start/end times; they don't any more, so remove them.
 st.events.forEach(ev=>{delete ev.start;delete ev.end});
+// Events saved before they had a Day: take the day from their date (if they have one).
+st.events.forEach(ev=>{if(!(ev.day>=0&&ev.day<=6))ev.day=dayOfDate(ev.date)});
 
 // save: write st back to the browser. Called by update() after every change, so nothing
 // typed is lost. Wrapped in try/catch because some browsers (private windows, blocked

@@ -9,15 +9,15 @@
 // (an event or person added/removed). Typing just saves to st and calls update(),
 // which refreshes each card's result table through showEvents().
 //
-// Uses: esc, key (1), st, $() (2), eventSplit(), money() (3), buildNames() (4), update() (6)
+// Uses: DAYS, esc, key, dayOfDate (1), st, $() (2), eventSplit(), money() (3), buildNames() (4), update() (6)
 // Provides: newEvent(), buildEvents(), showEvents()
 // ==========================================================
 
-// newEvent: a blank event (no name, no date, no tips, nobody on it yet)
-const newEvent=()=>({name:'',date:'',pool:0,staff:[]});
+// newEvent: a blank event (no name, no date, no day, no tips, nobody on it yet)
+const newEvent=()=>({name:'',date:'',day:null,pool:0,staff:[]});
 
 // buildEvents: draw every event card and attach what its boxes and buttons do.
-// Each card has: name, date and tips boxes; the list of people; "Add person" and
+// Each card has: name, date, day and tips boxes; the list of people; "Add person" and
 // "Remove event" buttons; a warning line; and a result table (filled by showEvents).
 // data-ev = the event's position in st.events; data-f = which event field a box changes;
 // data-j = a person's position in that event's list.
@@ -26,6 +26,7 @@ function buildEvents(){
     <div class="evgrid">
       <label class="evname">Event name<input data-f="name" value="${esc(ev.name)}" placeholder="e.g. Birthday party" autocomplete="off"></label>
       <label>Date<input type="date" data-f="date" value="${esc(ev.date)}"></label>
+      <label>Day<select data-f="day"><option value="">—</option>${DAYS.map((x,k)=>`<option value="${k}"${ev.day===k?' selected':''}>${x}</option>`).join('')}</select></label>
       <label>Tips<input type="number" inputmode="decimal" min="0" step="0.01" data-f="pool" value="${esc(ev.pool)}"></label>
     </div>
     <h4>Split between</h4>
@@ -38,8 +39,13 @@ function buildEvents(){
   </div>`).join('')||'<p class="hint">No events this week.</p>';
   $('events').querySelectorAll('.event').forEach(card=>{
     const i=+card.dataset.ev,ev=st.events[i];
-    // Event details (name, date, tips): save what's typed and recalculate
-    card.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('input',()=>{ev[el.dataset.f]=el.value;update()}));
+    // Event details (name, date, day, tips): save what's typed and recalculate.
+    // Day = which day's report the event's tips are added to (0 = Mon ... 6 = Sun, or none).
+    // Picking a date sets the Day to that date's weekday (it can still be changed after).
+    card.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('input',()=>{const f=el.dataset.f;
+      if(f==='day')ev.day=el.value===''?null:+el.value;else ev[f]=el.value;
+      if(f==='date'){const g=dayOfDate(el.value);if(g!==null){ev.day=g;card.querySelector('[data-f="day"]').value=String(g)}}
+      update()}));
     // People on the event: save names as typed; refresh name suggestions when leaving the box
     card.querySelectorAll('[data-j]').forEach(el=>{
       el.addEventListener('input',()=>{ev.staff[+el.dataset.j].name=el.value;update()});
@@ -61,7 +67,8 @@ function buildEvents(){
 // warning line. Called from update() after every change. evs = the eventSplit() results
 // from compute(), one list per event.
 // Warnings: someone listed twice (counted once), a row with no name (gets nothing),
-// or tips entered with nobody to split them between (that money isn't paid out).
+// tips entered with nobody to split them between (that money isn't paid out), or tips
+// with no Day chosen (they then only show in the week total, not in a day report).
 function showEvents(evs){
   st.events.forEach((ev,i)=>{const tb=$('evRes'+i),err=$('evErr'+i);if(!tb)return;
     const list=evs[i],msgs=[];
@@ -72,6 +79,7 @@ function showEvents(evs){
     if(dup.length)msgs.push('Listed twice: '+dup.join(', ')+'. They are counted once.');
     if(ev.staff.some(p=>!key(p.name||'')))msgs.push('Someone has no name, so they get no share.');
     if((parseFloat(ev.pool)||0)>0&&!list.length)msgs.push('Tips entered but nobody to split them between.');
+    if((parseFloat(ev.pool)||0)>0&&ev.day===null)msgs.push('No day chosen, so these tips are only in the week total, not in a day report.');
     err.hidden=!msgs.length;err.textContent=msgs.join(' ');
   });
 }

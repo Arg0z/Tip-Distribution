@@ -77,7 +77,8 @@
      - Hourly numbers (SPG, sales or tips): one box per open hour, plus a box to paste a
        whole column at once
      - The busy-hours chart (js/7-chart.js)
-     - "Split for <day>": each person's hours, points, share and tips for this day,
+     - "Split for <day>": each person's hours, points, share and tips for this day, plus their
+       tips from events held that day (Events and Total columns, only when there are any),
        with a button to export this day (split + hour-by-hour numbers) to Excel -->
 <section>
   <h2>Day by day</h2>
@@ -116,9 +117,10 @@
 
   <h3 id="dayResTitle">Split for this day</h3>
   <div class="tablewrap"><table>
-    <thead><tr><th>Name</th><th>Hours</th><th>Points</th><th>Share</th><th>Tips</th></tr></thead>
-    <tbody id="dayRes"></tbody>
+    <thead id="dayHead"><tr><th>Name</th><th>Hours</th><th>Points</th><th>Share</th><th>Tips</th></tr></thead>
+    <tbody id="dayRes"></tbody><tfoot id="dayFoot"></tfoot>
   </table></div>
+  <p class="hint" id="dayEvNote" style="margin-top:8px" hidden></p>
   <div class="row" style="margin-top:14px"><button id="xlsxDayBtn" hidden>Export this day to Excel</button></div>
   <p class="err" id="xlsxDayMsg" hidden></p>
 </section>

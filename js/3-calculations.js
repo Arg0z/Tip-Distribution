@@ -18,7 +18,7 @@
 // never any fractions of a cent and no floating-point rounding surprises.
 //
 // Uses: key (1), st, okShift, openVals, dayTips, weekTips (2)
-// Provides: ma(), dayPoints(), splitCents(), money(), compute(), checkTotals(), eventSplit()
+// Provides: ma(), dayPoints(), splitCents(), money(), compute(), checkTotals(), dayReport(), eventSplit()
 // ==========================================================
 
 // ma: centred 3-hour moving average (the "busy level").
@@ -148,6 +148,37 @@ function checkTotals(people){
   const entEv=st.events.reduce((a,ev)=>a+Math.round(Math.max(0,parseFloat(ev.pool)||0)*100),0);
   const entAll=(isWeek?Math.round(weekTips()*100):entDay.reduce((a,c)=>a+c,0))+entEv;
   return{paidDay,paidEv,paidAll,entDay,entEv,entAll};
+}
+
+// dayReport(i, r): the rows of the "Split for <day>" report (on the page and in the Excel
+// day sheet) for day i (0 = Mon ... 6 = Sun). r = the result of compute().
+// The report shows each person's tips from their shifts that day AND their tips from any
+// events held that day (events whose Day is set to this day - see 5-events.js), so it
+// shows everything each person got for the day.
+// Returns {
+//   rows:   one per person: {name, s, e (shift times, null if they only worked an event),
+//           hrs, pts, share (0-1), tips (cents from shifts), ev (cents from events), total}
+//           - first everyone with a valid shift, in the order they were entered
+//           - then anyone who only worked an event that day
+//           A person listed twice in the shifts gets their event tips on their first row only.
+//   events: the events held that day: [{name, cents (the event's tips)}]
+//   tot:    the column totals {hrs, pts, tips, ev, total}
+// }
+function dayReport(i,r){
+  const d=st.days[i],dp=r.pts[i],dc=r.dayCents[i],totPts=dp.reduce((a,x)=>a+x.pts,0);
+  // evCents[k] = event cents per name key, from every event held this day
+  const evCents={},evNames={},events=[];
+  st.events.forEach((ev,j)=>{if(ev.day!==i)return;
+    events.push({name:ev.name||'Unnamed event',cents:Math.round(Math.max(0,parseFloat(ev.pool)||0)*100)});
+    r.evs[j].forEach(x=>{evCents[x.k]=(evCents[x.k]||0)+x.cents;evNames[x.k]=evNames[x.k]||x.name})});
+  // given = name keys whose event tips are already on a row
+  const rows=[],given={};
+  d.staff.forEach((p,k)=>{if(!dp[k].hrs)return;const nk=key(p.name||''),ev=nk&&!given[nk]?(evCents[nk]||0):0;if(nk)given[nk]=1;
+    rows.push({name:p.name||'—',s:p.s,e:p.e,hrs:dp[k].hrs,pts:dp[k].pts,share:totPts?dp[k].pts/totPts:0,tips:dc[k],ev,total:dc[k]+ev})});
+  Object.keys(evCents).forEach(k=>{if(!given[k])rows.push({name:evNames[k],s:null,e:null,hrs:0,pts:0,share:0,tips:0,ev:evCents[k],total:evCents[k]})});
+  const tot={hrs:0,pts:totPts,tips:0,ev:0,total:0};
+  rows.forEach(x=>{tot.hrs+=x.hrs;tot.tips+=x.tips;tot.ev+=x.ev;tot.total+=x.total});
+  return{rows,events,tot};
 }
 
 // eventSplit: divide one event's tips equally between the named people on it, in whole
